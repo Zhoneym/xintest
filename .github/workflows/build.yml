@@ -1,42 +1,26 @@
-name: Verify Xinference Install
+name: Save ollama/ollama:cuda Docker Image
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # 手动触发，也可以换成 schedule 或 push
 
 jobs:
-  xinference-install-test:
+  save-image:
     runs-on: ubuntu-latest
-
-    container:
-      image: archlinux:base-devel
-      options: --privileged  # Needed for some pacman operations
-
     steps:
-      - name: Install system dependencies
-        run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm git python python-pip python-virtualenv gcc cmake \
-              python-pytorch-cuda cuda python-setuptools python-wheel
+      - name: Checkout (required by actions/upload-artifact)
+        uses: actions/checkout@v4
 
-      - name: Clone xinference
-        run: |
-          git clone https://github.com/xorbitsai/inference.git
-          cd inference
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
 
-          # Create virtualenv (optional but recommended)
-          python -m venv .venv
-          source .venv/bin/activate
+      - name: Pull ollama/ollama:cuda image
+        run: docker pull ollama/ollama:cuda
 
-          pip install --upgrade pip setuptools wheel
+      - name: Save image to tarball
+        run: docker save ollama/ollama:cuda -o ollama-cuda.tar
 
-          # Install xinference (skip torch, use system one)
-          pip install -e .[all] --no-deps
-
-      - name: Test xinference CLI
-        run: |
-          source inference/.venv/bin/activate
-          xinference --help
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ollama-cuda-image
+          path: ollama-cuda.tar
