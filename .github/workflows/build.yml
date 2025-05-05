@@ -1,0 +1,42 @@
+name: Verify Xinference Install
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  xinference-install-test:
+    runs-on: ubuntu-latest
+
+    container:
+      image: archlinux:base-devel
+      options: --privileged  # Needed for some pacman operations
+
+    steps:
+      - name: Install system dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm git python python-pip python-virtualenv gcc cmake \
+              python-pytorch-cuda cuda python-setuptools python-wheel
+
+      - name: Clone xinference
+        run: |
+          git clone https://github.com/xorbitsai/inference.git
+          cd inference
+
+          # Create virtualenv (optional but recommended)
+          python -m venv .venv
+          source .venv/bin/activate
+
+          pip install --upgrade pip setuptools wheel
+
+          # Install xinference (skip torch, use system one)
+          pip install -e .[all] --no-deps
+
+      - name: Test xinference CLI
+        run: |
+          source inference/.venv/bin/activate
+          xinference --help
