@@ -1,26 +1,42 @@
-name: Save ollama/ollama:cuda Docker Image
+name: Inline Docker Build with vLLM
 
 on:
-  workflow_dispatch:  # 手动触发，也可以换成 schedule 或 push
+  workflow_dispatch:
 
 jobs:
-  save-image:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout (required by actions/upload-artifact)
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Docker
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Pull ollama/ollama:cuda image
-        run: docker pull ollama/ollama:cuda
+      - name: Login to NGC (optional if public)
+        run: echo ${{ secrets.NGC_API_KEY }} | docker login nvcr.io --username '$oauthtoken' --password-stdin
 
-      - name: Save image to tarball
-        run: docker save ollama/ollama:cuda -o ollama-cuda.tar
+      - name: Build Docker image inline
+        run: |
+          docker build -t vllm-api-server:latest - <<EOF
+          FROM nvcr.io/nvidia/pytorch:25.04-py3
 
-      - name: Upload image artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ollama-cuda-image
-          path: ollama-cuda.tar
+          ARG VLLM_VERSION=0.8.5.post1
+
+          RUN apt-get update && apt-get install -y git wget curl && \
+              rm -rf /var/lib/apt/lists/*
+
+          RUN pip install --upgrade pip setuptools wheel
+
+          RUN wget https://github.com/vllm-project/vllm/releases/download/v\${VLLM_VERSION}/vllm-\${VLLM_VERSION}.tar.gz && \
+              pip install vllm-\${VLLM_VERSION}.tar.gz --no-deps && \
+              rm vllm-\${VLLM_VERSION}.tar.gz
+
+          WORKDIR /workspace
+          EXPOSE 8000
+          CMD ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+          EOF
+
+      - name: Check built image
+        run: docker images | grep vllm-api-server
