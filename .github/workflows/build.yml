@@ -1,39 +1,38 @@
-name: Inline Docker Build with vLLM
+name: Build Docker Image and Upload TAR
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  build:
+  build-and-upload-tar:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v2
 
-      - name: Build Docker image inline
+      - name: Create Dockerfile dynamically
         run: |
-          docker build -t vllm-api-server:latest - <<EOF
-          FROM nvcr.io/nvidia/pytorch:25.04-py3
-
-          ARG VLLM_VERSION=0.8.5.post1
-
-          RUN apt-get update && apt-get install -y git wget curl && \
-              rm -rf /var/lib/apt/lists/*
-
-          RUN pip install --upgrade pip setuptools wheel
-
-          RUN wget https://github.com/vllm-project/vllm/releases/download/v\${VLLM_VERSION}/vllm-\${VLLM_VERSION}.tar.gz && \
-              pip install vllm-\${VLLM_VERSION}.tar.gz --no-deps && \
-              rm vllm-\${VLLM_VERSION}.tar.gz
-
-          WORKDIR /workspace
-          EXPOSE 8000
-          CMD ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+          cat <<EOF > Dockerfile
+          FROM xinference:latest
+          RUN pip install --no-cache-dir --upgrade transformers
           EOF
 
-      - name: Check built image
-        run: docker images | grep vllm-api-server
+      - name: Build Docker image
+        run: |
+          docker build -t xinference:transformers-upgraded .
+
+      - name: Save image to tar
+        run: |
+          docker save xinference:transformers-upgraded -o xinference_transformers_upgraded.tar
+
+      - name: Upload image tar as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: xinference-transformers-tar
+          path: xinference_transformers_upgraded.tar
