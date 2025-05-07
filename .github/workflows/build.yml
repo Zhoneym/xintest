@@ -1,9 +1,7 @@
 name: Build Docker Image and Upload TAR
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build-and-upload-tar:
