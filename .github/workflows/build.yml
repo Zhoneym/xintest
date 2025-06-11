@@ -1,36 +1,17 @@
-name: Build Docker Image and Upload TAR
+name: Query Latest Pause Image Version
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-and-upload-tar:
+  query-pause-version:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Create Dockerfile dynamically
+      - name: Install skopeo
         run: |
-          cat <<EOF > Dockerfile
-          FROM xprobe/xinference:latest
-          RUN pip install --no-cache-dir --upgrade transformers
-          EOF
+          sudo apt-get update
+          sudo apt-get install -y skopeo
 
-      - name: Build Docker image
+      - name: List tags for pause image
         run: |
-          docker build -t xinference:transformers-upgraded .
-
-      - name: Save image to tar
-        run: |
-          docker save xinference:transformers-upgraded -o xinference_transformers_upgraded.tar
-
-      - name: Upload image tar as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: xinference-transformers-tar
-          path: xinference_transformers_upgraded.tar
+          skopeo list-tags docker://registry.k8s.io/pause | jq .
