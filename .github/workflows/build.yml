@@ -14,5 +14,4 @@ jobs:
 
       - name: List tags for pause image
         run: |
-          skopeo list-tags docker://registry.k8s.io/pause | jq .
-          skopeo list-tags docker://docker.m.daocloud.io/rancher/local-path-provisioner | jq .
+          skopeo list-tags docker://docker.m.daocloud.io/library/busybox | jq .
