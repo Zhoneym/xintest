@@ -1,17 +1,62 @@
-name: Query Latest Pause Image Version
+name: Build PHP 8.4.8
 
 on:
   workflow_dispatch:
 
 jobs:
-  query-pause-version:
-    runs-on: ubuntu-latest
+  build-php:
+    runs-on: ubuntu-20.04
+
     steps:
-      - name: Install skopeo
+      - name: Checkout dummy repo
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y skopeo
+          sudo apt-get install -y \
+            build-essential autoconf bison re2c \
+            libxml2-dev libsqlite3-dev libcurl4-openssl-dev libjpeg-dev \
+            libpng-dev libwebp-dev libfreetype6-dev libzip-dev libonig-dev \
+            libssl-dev libreadline-dev pkg-config libmysqlclient-dev \
+            libxslt1-dev libpq-dev libicu-dev
 
-      - name: List tags for pause image
+      - name: Download PHP source code
         run: |
-          skopeo list-tags docker://docker.m.daocloud.io/library/busybox | jq .
+          curl -sSL https://www.php.net/distributions/php-8.4.8.tar.gz -o php-8.4.8.tar.gz
+          tar -xzf php-8.4.8.tar.gz
+          cd php-8.4.8
+          ./buildconf --force
+
+      - name: Configure PHP (without installing)
+        run: |
+          cd php-8.4.8
+          ./configure --prefix=/php-8.4.8 \
+            --with-config-file-path=/php-8.4.8/etc \
+            --enable-fpm \
+            --with-fpm-user=www-data \
+            --with-fpm-group=www-data \
+            --enable-mbstring \
+            --enable-mysqlnd \
+            --with-curl \
+            --with-openssl \
+            --with-zlib \
+            --with-pdo-mysql \
+            --enable-soap \
+            --enable-intl \
+            --with-xsl \
+            --enable-bcmath \
+            --enable-zip \
+            --with-gettext \
+            --with-readline
+
+      - name: Compile PHP (without installing)
+        run: |
+          cd php-8.4.8
+          make -j$(nproc)
+
+      - name: Upload compiled build directory
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-8.4.8-build-dir
+          path: php-8.4.8/
