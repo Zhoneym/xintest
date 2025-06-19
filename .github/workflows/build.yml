@@ -15,7 +15,7 @@ jobs:
 
       - name: Run build in ARM64 Ubuntu container
         run: |
-          docker run --rm -w /workdir -v ${{ github.workspace }}:/workdir ubuntu:20.04 bash -c "
+          docker run --rm --platform linux/arm64 -w /workdir -v ${{ github.workspace }}:/workdir ubuntu:20.04 bash -c "
             export DEBIAN_FRONTEND=noninteractive
             export TZ=Etc/UTC
             apt-get update && apt-get install -y \
