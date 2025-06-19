@@ -1,36 +1,34 @@
-name: Build PHP 8.4.8
+name: Build PHP 8.4.8 using container
 
 on:
   workflow_dispatch:
 
 jobs:
   build-php:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+
+    container:
+      image: ubuntu:22.04
+      options: --cpus 2
 
     steps:
-      - name: Checkout dummy repo
-        uses: actions/checkout@v4
-
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential autoconf bison re2c \
+          apt-get update && apt-get install -y \
+            build-essential autoconf bison re2c curl \
             libxml2-dev libsqlite3-dev libcurl4-openssl-dev libjpeg-dev \
             libpng-dev libwebp-dev libfreetype6-dev libzip-dev libonig-dev \
             libssl-dev libreadline-dev pkg-config libmysqlclient-dev \
             libxslt1-dev libpq-dev libicu-dev
 
-      - name: Download PHP source code
+      - name: Download and extract PHP
         run: |
-          curl -sSL https://www.php.net/distributions/php-8.4.8.tar.gz -o php-8.4.8.tar.gz
-          tar -xzf php-8.4.8.tar.gz
-          cd php-8.4.8
-          ./buildconf --force
+          curl -sSL https://www.php.net/distributions/php-8.4.8.tar.gz | tar -xz
 
-      - name: Configure PHP (without installing)
+      - name: Configure PHP
+        working-directory: php-8.4.8
         run: |
-          cd php-8.4.8
+          ./buildconf --force
           ./configure --prefix=/php-8.4.8 \
             --with-config-file-path=/php-8.4.8/etc \
             --enable-fpm \
@@ -50,13 +48,12 @@ jobs:
             --with-gettext \
             --with-readline
 
-      - name: Compile PHP (without installing)
-        run: |
-          cd php-8.4.8
-          make -j$(nproc)
+      - name: Compile PHP (no install)
+        working-directory: php-8.4.8
+        run: make -j$(nproc)
 
-      - name: Upload compiled build directory
+      - name: Upload build dir
         uses: actions/upload-artifact@v4
         with:
           name: php-8.4.8-build-dir
-          path: php-8.4.8/
+          path: php-8.4.8
