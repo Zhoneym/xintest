@@ -21,7 +21,7 @@ jobs:
             libxml2-dev libsqlite3-dev libcurl4-openssl-dev libjpeg-dev \
             libpng-dev libwebp-dev libfreetype6-dev libzip-dev libonig-dev \
             libssl-dev libreadline-dev pkg-config libmysqlclient-dev \
-            libxslt1-dev libpq-dev libicu-dev
+            libxslt1-dev libpq-dev libicu-dev file
 
       - name: Download and extract PHP
         run: |
@@ -46,7 +46,6 @@ jobs:
             --enable-intl \
             --with-xsl \
             --enable-bcmath \
-            --enable-zip \
             --with-gettext \
             --with-readline
 
