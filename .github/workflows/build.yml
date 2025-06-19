@@ -1,4 +1,4 @@
-name: Build PHP 8.4.8 using container
+name: Build PHP 8.4.8 using ARM64 container
 
 on:
   workflow_dispatch:
@@ -7,12 +7,16 @@ jobs:
   build-php:
     runs-on: ubuntu-latest
 
-    container:
-      image: ubuntu:20.04
-      options: --cpus 2
-
     steps:
-      - name: Install dependencies
+      - name: Set up QEMU for ARM64 emulation
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+
+      - name: Build inside ARM64 Ubuntu container
+        uses: docker://arm64v8/ubuntu:20.04
+        with:
+          options: --cpus 2
         run: |
           export DEBIAN_FRONTEND=noninteractive
           export TZ=Etc/UTC
@@ -21,15 +25,11 @@ jobs:
             libxml2-dev libsqlite3-dev libcurl4-openssl-dev libjpeg-dev \
             libpng-dev libwebp-dev libfreetype6-dev libzip-dev libonig-dev \
             libssl-dev libreadline-dev pkg-config libmysqlclient-dev \
-            libxslt1-dev libpq-dev libicu-dev file
+            libxslt1-dev libpq-dev libicu-dev file curl
 
-      - name: Download and extract PHP
-        run: |
           curl -sSL https://www.php.net/distributions/php-8.4.8.tar.gz | tar -xz
 
-      - name: Configure PHP
-        working-directory: php-8.4.8
-        run: |
+          cd php-8.4.8
           ./buildconf --force
           ./configure --prefix=/php-8.4.8 \
             --with-config-file-path=/php-8.4.8/etc \
@@ -49,12 +49,4 @@ jobs:
             --with-gettext \
             --with-readline
 
-      - name: Compile PHP (no install)
-        working-directory: php-8.4.8
-        run: make -j$(nproc)
-
-      - name: Upload build dir
-        uses: actions/upload-artifact@v4
-        with:
-          name: php-8.4.8-build-dir
-          path: php-8.4.8
+          make -j$(nproc)
