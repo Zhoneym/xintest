@@ -1,4 +1,4 @@
-name: Build PHP 8.4.8 using ARM64 container
+name: Build PHP 7.3.33 on ARM64 emulator
 
 on:
   workflow_dispatch:
@@ -13,10 +13,12 @@ jobs:
         with:
           platforms: arm64
 
-      - name: Build inside ARM64 Ubuntu container
+      - name: Use ARM64 Ubuntu container
         uses: docker://arm64v8/ubuntu:20.04
         with:
-          options: --cpus 2
+          options: --privileged
+
+      - name: Install dependencies
         run: |
           export DEBIAN_FRONTEND=noninteractive
           export TZ=Etc/UTC
@@ -25,14 +27,18 @@ jobs:
             libxml2-dev libsqlite3-dev libcurl4-openssl-dev libjpeg-dev \
             libpng-dev libwebp-dev libfreetype6-dev libzip-dev libonig-dev \
             libssl-dev libreadline-dev pkg-config libmysqlclient-dev \
-            libxslt1-dev libpq-dev libicu-dev file curl
+            libxslt1-dev libpq-dev libicu-dev file
 
-          curl -sSL https://www.php.net/distributions/php-8.4.8.tar.gz | tar -xz
+      - name: Download and extract PHP
+        run: |
+          curl -sSL https://www.php.net/distributions/php-7.3.33.tar.gz | tar -xz
 
-          cd php-8.4.8
+      - name: Configure PHP
+        working-directory: php-7.3.33
+        run: |
           ./buildconf --force
-          ./configure --prefix=/php-8.4.8 \
-            --with-config-file-path=/php-8.4.8/etc \
+          ./configure --prefix=/php-7.3.33 \
+            --with-config-file-path=/php-7.3.33/etc \
             --enable-fpm \
             --with-fpm-user=www-data \
             --with-fpm-group=www-data \
@@ -49,4 +55,12 @@ jobs:
             --with-gettext \
             --with-readline
 
-          make -j$(nproc)
+      - name: Compile PHP (no install)
+        working-directory: php-7.3.33
+        run: make -j$(nproc)
+
+      - name: Upload build dir
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-7.3.33-build
+          path: php-7.3.33
