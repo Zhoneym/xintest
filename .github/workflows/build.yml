@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ubuntu:22.04
+      image: ubuntu:20.04
       options: --cpus 2
 
     steps:
