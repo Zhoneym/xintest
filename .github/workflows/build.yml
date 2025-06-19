@@ -1,54 +1,39 @@
-name: Build PHP 7.3.33 on ARM64 emulator
+name: Pull Kubernetes Images v1.33.2
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-php:
+  pull-images:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up QEMU for ARM64 emulation
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: arm64
-
-      - name: Run build in ARM64 Ubuntu container
+      - name: Set up Docker CLI
         run: |
-          docker run --rm --platform linux/arm64 -w /workdir -v ${{ github.workspace }}:/workdir ubuntu:20.04 bash -c "
-            export DEBIAN_FRONTEND=noninteractive
-            export TZ=Etc/UTC
-            apt-get update && apt-get install -y \
-              build-essential autoconf bison re2c curl \
-              libxml2-dev libsqlite3-dev libcurl4-openssl-dev libjpeg-dev \
-              libpng-dev libwebp-dev libfreetype6-dev libzip-dev libonig-dev \
-              libssl-dev libreadline-dev pkg-config libmysqlclient-dev \
-              libxslt1-dev libpq-dev libicu-dev file &&
-            curl -sSL https://www.php.net/distributions/php-7.3.33.tar.gz | tar -xz &&
-            cd php-7.3.33 &&
-            ./buildconf --force &&
-            ./configure --prefix=/php-7.3.33 \
-              --with-config-file-path=/php-7.3.33/etc \
-              --enable-fpm \
-              --with-fpm-user=www-data \
-              --with-fpm-group=www-data \
-              --enable-mbstring \
-              --enable-mysqlnd \
-              --with-curl \
-              --with-openssl \
-              --with-zlib \
-              --with-pdo-mysql \
-              --enable-soap \
-              --enable-intl \
-              --with-xsl \
-              --enable-bcmath \
-              --with-gettext \
-              --with-readline &&
-            make -j$(nproc)
-          "
+          sudo apt-get update
+          sudo apt-get install -y docker.io
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: php-7.3.33-build
-          path: php-7.3.33
+      - name: Pull and tag Kubernetes v1.33.2 images
+        run: |
+          REGISTRY=registry.aliyuncs.com/google_containers
+          VERSION=v1.33.2
+          ETCD_VERSION=3.5.21-0
+          COREDNS_VERSION=v1.12.0
+          PAUSE_VERSION=3.10
+
+          IMAGES=(
+            kube-apiserver
+            kube-controller-manager
+            kube-scheduler
+            kube-proxy
+          )
+
+          for image in "${IMAGES[@]}"; do
+            docker pull $REGISTRY/$image:$VERSION
+          done
+
+          docker pull $REGISTRY/etcd:$ETCD_VERSION
+          docker pull $REGISTRY/coredns:$COREDNS_VERSION
+          docker pull $REGISTRY/pause:$PAUSE_VERSION
+
+          echo "✅ All images pulled successfully"
