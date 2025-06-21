@@ -1,0 +1,26 @@
+name: Save Docker Images to Tar
+
+on:
+  workflow_dispatch:
+
+jobs:
+  save-images:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Pull Docker images
+        run: docker pull docker.m.daocloud.io/registry:latest
+
+      - name: Save Docker images to TAR
+        run: |
+          mkdir -p docker-images
+          docker save docker.m.daocloud.io/registry:latest -o docker-images/registry-images.tar
+
+      - name: Upload TAR as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: save-images-tar
+          path: docker-images/registry-images.tar
