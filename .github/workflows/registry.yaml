@@ -1,4 +1,4 @@
-name: Save Docker Images to Tar
+name: Save registry Images to Tar
 
 on:
   workflow_dispatch:
