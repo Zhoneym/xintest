@@ -21,10 +21,10 @@ jobs:
       - name: Save Docker images to TAR
         run: |
           mkdir -p docker-images
-          docker save $(cat images.txt | tr '\n' ' ') -o docker-images/all-images.tar
+          docker save $(cat images.txt | tr '\n' ' ') -o docker-images/kubernetes-images.tar
 
       - name: Upload TAR as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: docker-images-tar
-          path: docker-images/all-images.tar
+          name: save-images-tar
+          path: docker-images/kubernetes-images.tar
