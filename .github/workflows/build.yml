@@ -10,9 +10,6 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Docker registries (Optional)
-        run: echo "No login needed for public mirrors like daocloud"
-
       - name: Pull all images
         run: |
           mkdir -p docker-images
